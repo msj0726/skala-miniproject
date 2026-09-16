@@ -1,0 +1,291 @@
+Project Jibeum {
+  database_type: 'PostgreSQL'
+  Note: '판교6반 장민서 | 집이음 | OAS 1.0.0 대응. 모든 일시는 UTC; 모든 금액은 KRW. Security Scheme은 과제 범위 밖.'
+}
+
+Enum UserRole {
+  BUYER
+  EXPERT
+  ADMIN
+}
+
+Enum ExpertType {
+  BROKER
+  LEGAL
+  TAX
+}
+
+Enum FundingType {
+  SELF
+  LOAN
+  FAMILY
+}
+
+Enum OwnershipType {
+  SOLE
+  JOINT
+  UNDECIDED
+}
+
+Enum RequestStatus {
+  REQUESTED
+  QUOTED
+  SELECTED
+}
+
+Enum EngagementStatus {
+  ACTIVE
+  COMPLETED
+  REPLACED
+}
+
+Enum QuoteStatus {
+  OFFERED
+  ACCEPTED
+}
+
+Enum MessageRole {
+  BUYER
+  EXPERT
+}
+
+// 구매자·전문가·관리자 계정. 
+Table users {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  role UserRole [not null, note: '역할']
+  name varchar(50) [not null, note: '표시 이름; 1~50자']
+  created_at timestamptz [not null, default: `now()`, note: '서버 생성 일시; UTC']
+  updated_at timestamptz [not null, default: `now()`, note: '최종 변경 일시; UTC']
+}
+
+// 전문가 공개 정보. 
+Table expert_profiles {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  user_id uuid [not null, ref: - users.id, note: '전문가 계정']
+  expert_type ExpertType [not null, note: '전문 분야']
+  office_name varchar(100) [not null, note: '사무소명; 1~100자']
+  bio varchar(400) [not null, note: '소개; 1~400자']
+  region varchar(100) [not null, note: '활동 지역']
+  career_years integer [not null, note: '경력; 0~80']
+  is_demo boolean [not null, note: '가상 전문가 여부']
+  created_at timestamptz [not null, default: `now()`, note: '서버 생성 일시; UTC']
+  updated_at timestamptz [not null, default: `now()`, note: '최종 변경 일시; UTC']
+  indexes {
+    (user_id) [unique]
+  }
+}
+
+// 전문가 전문 분야 태그. 
+Table expert_tags {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  expert_id uuid [not null, ref: > expert_profiles.id, note: '전문가']
+  label varchar(50) [not null, note: '태그']
+  sort_order integer [not null, note: '표시 순서; 0 이상']
+  indexes {
+    (expert_id, label) [unique]
+  }
+}
+
+// 구매 프로젝트. 
+Table purchase_cases {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  buyer_id uuid [not null, ref: > users.id, note: '소유 구매자']
+  title varchar(80) [not null, note: '프로젝트 이름']
+  region varchar(100) [not null, note: '희망 지역']
+  budget_krw bigint [not null, note: '원 단위 구매 예산; 10000~100000000000']
+  home_count integer [not null, note: '0 / 1 / 2(2채 이상)']
+  funding FundingType [not null, note: '자금 구성']
+  ownership OwnershipType [not null, note: '명의 계획']
+  target_closing_date date [note: '희망 잔금일']
+  workflow_version integer [not null, note: '고정 절차 버전; 현재 3']
+  created_at timestamptz [not null, default: `now()`, note: '서버 생성 일시; UTC']
+  updated_at timestamptz [not null, default: `now()`, note: '최종 변경 일시; UTC']
+}
+
+// 후보별 상담·견적 요청. 
+Table service_requests {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  case_id uuid [not null, ref: > purchase_cases.id, note: '프로젝트']
+  expert_id uuid [not null, ref: > expert_profiles.id, note: '요청받는 전문가']
+  note varchar(2000) [not null, note: '상담 요청; 1~2000자']
+  status RequestStatus [not null, note: '요청 상태']
+  created_at timestamptz [not null, default: `now()`, note: '서버 생성 일시; UTC']
+  updated_at timestamptz [not null, default: `now()`, note: '최종 변경 일시; UTC']
+  indexes {
+    (case_id, expert_id) [unique]
+  }
+}
+
+// 후보가 보낸 견적. 
+Table quotes {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  request_id uuid [not null, ref: - service_requests.id, note: '상담 요청; 요청당 1건']
+  fee_krw bigint [not null, note: '보수; 0~100000000']
+  vat_krw bigint [not null, note: '부가세; 0~10000000']
+  estimated_days integer [not null, note: '예상 일수; 1~365']
+  scope varchar(2000) [not null, note: '업무 범위·별도 비용 안내']
+  status QuoteStatus [not null, note: '견적 상태']
+  created_at timestamptz [not null, default: `now()`, note: '서버 생성 일시; UTC']
+  indexes {
+    (request_id) [unique]
+  }
+}
+
+// 선택한 견적의 업무 이력. 견적 재선택 시 새 업무 이력 생성. 업무 시작 전만 교체 가능. 기존 이력은 REPLACED로 보관.
+Table engagements {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  case_id uuid [not null, ref: > purchase_cases.id, note: '프로젝트']
+  expert_id uuid [not null, ref: > expert_profiles.id, note: '담당 전문가']
+  quote_id uuid [not null, ref: > quotes.id, note: '선택 견적']
+  status EngagementStatus [not null, note: '현재 / 완료 / 교체 이력']
+  created_at timestamptz [not null, default: `now()`, note: '서버 생성 일시; UTC']
+  updated_at timestamptz [not null, default: `now()`, note: '최종 변경 일시; UTC']
+}
+
+// 분야별 현재 담당자. 견적 선택 트랜잭션에서 선택 분야·전문가·견적·프로젝트 일치 검증. 정확히 세 분야의 현재 담당자가 있어야 업무 시작.
+Table team_selections {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  case_id uuid [not null, ref: > purchase_cases.id, note: '프로젝트']
+  expert_type ExpertType [not null, note: '필수 분야']
+  engagement_id uuid [not null, ref: - engagements.id, note: '현재 선택한 업무 이력']
+  updated_at timestamptz [not null, default: `now()`, note: '최종 변경 일시; UTC']
+  indexes {
+    (case_id, expert_type) [unique]
+    (engagement_id) [unique]
+  }
+}
+
+// 버전별 6단계 정의. 
+Table phase_definitions {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  workflow_version integer [not null, note: '절차 버전']
+  phase_order integer [not null, note: '1~6']
+  title varchar(100) [not null, note: '단계명']
+  owner_type ExpertType [not null, note: '기록 담당 분야']
+  indexes {
+    (workflow_version, phase_order) [unique]
+  }
+}
+
+// 버전별 19개 체크 정의. 
+Table task_definitions {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  phase_id uuid [not null, ref: > phase_definitions.id, note: '단계']
+  task_order integer [not null, note: '단계 내 순서; 1 이상']
+  title varchar(100) [not null, note: '체크 항목']
+  indexes {
+    (phase_id, task_order) [unique]
+  }
+}
+
+// 담당 전문가 체크 결과. 현재 TeamSelection이 참조하는 Task만 진행률에 포함. completed와 완료자·시각의 null 여부 일치.
+Table tasks {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  engagement_id uuid [not null, ref: > engagements.id, note: '선택 업무']
+  definition_id uuid [not null, ref: > task_definitions.id, note: '업무 정의']
+  completed boolean [not null, default: false, note: '완료 여부; 기본 false']
+  completed_by uuid [ref: > users.id, note: '확인 전문가; 미완료 시 null']
+  completed_at timestamptz [note: '완료 시각; 미완료 시 null']
+  updated_at timestamptz [not null, default: `now()`, note: '최종 변경 일시; UTC']
+  indexes {
+    (engagement_id, definition_id) [unique]
+  }
+}
+
+// 구매 문서 메타데이터. 
+Table documents {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  case_id uuid [not null, ref: > purchase_cases.id, note: '프로젝트']
+  uploaded_by uuid [not null, ref: > users.id, note: '등록 구매자']
+  file_name varchar(255) [not null, note: '파일명']
+  size_bytes bigint [not null, note: '크기; 0 이상']
+  mime_type varchar(100) [not null, note: 'MIME; 없으면 application/octet-stream']
+  created_at timestamptz [not null, default: `now()`, note: '서버 생성 일시; UTC']
+}
+
+// 프로젝트 문서 목록 공유 권한. 현 UI와 동일하게 프로젝트 문서 목록 전체에 적용. 파일 본문 저장·다운로드는 이번 범위 밖.
+Table document_grants {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  case_id uuid [not null, ref: > purchase_cases.id, note: '프로젝트']
+  expert_id uuid [not null, ref: > expert_profiles.id, note: '열람 전문가']
+  allowed boolean [not null, default: false, note: '문서 목록 허용; 기본 false']
+  updated_at timestamptz [not null, default: `now()`, note: '최종 변경 일시; UTC']
+  indexes {
+    (case_id, expert_id) [unique]
+  }
+}
+
+// 구매자와 후보 전문가의 1:1 대화. 
+Table conversations {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  request_id uuid [not null, ref: - service_requests.id, note: '요청당 한 대화; 참여자는 요청에서 도출']
+  created_at timestamptz [not null, default: `now()`, note: '서버 생성 일시; UTC']
+  indexes {
+    (request_id) [unique]
+  }
+}
+
+// 대화 메시지. sender_role은 User.role에서 응답 시 도출. 대화 참여자만 조회·전송.
+Table messages {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  conversation_id uuid [not null, ref: > conversations.id, note: '대화']
+  sender_id uuid [not null, ref: > users.id, note: '참여자 계정']
+  body varchar(1000) [not null, note: '공백 제거 후 1~1000자']
+  client_message_id uuid [not null, note: '재전송 중복 방지 키']
+  created_at timestamptz [not null, default: `now()`, note: '서버 생성 일시; UTC']
+  indexes {
+    (conversation_id, sender_id, client_message_id) [unique]
+  }
+}
+
+// 프로젝트 최근 활동. 
+Table audit_events {
+  id uuid [pk, not null, default: `gen_random_uuid()`, note: '식별자; 서버 생성 UUID']
+  case_id uuid [not null, ref: > purchase_cases.id, note: '프로젝트']
+  actor_id uuid [not null, ref: > users.id, note: '행위자']
+  event_type varchar(50) [not null, note: '예: QUOTE_SELECTED, TASK_COMPLETED']
+  summary varchar(500) [not null, note: '사용자 표시 요약']
+  resource_id uuid [note: '관련 리소스 식별자']
+  created_at timestamptz [not null, default: `now()`, note: '서버 생성 일시; UTC']
+}
+
+// 관계: User 1:N PurchaseCase; User 1:0..1 ExpertProfile; ExpertProfile 1:N ExpertTag.
+// PurchaseCase M:N ExpertProfile은 ServiceRequest로 연결. 분야별 현재 담당자는 TeamSelection(case_id,expert_type) 유일성으로 관리.
+// ServiceRequest 1:0..1 Quote, 1:1 Conversation(요청 생성 트랜잭션). Quote 1:N Engagement 이력.
+// PhaseDefinition 1:N TaskDefinition; Engagement M:N TaskDefinition은 Task로 연결.
+// PurchaseCase M:N ExpertProfile 문서 목록 권한은 DocumentGrant로 연결. 파일별 권한이 아님.
+// 금액 범위·home_count IN(0,1,2)·career_years 0..80·phase_order 1..6 등 Note 범위는 실제 마이그레이션 CHECK로 구현.
+// completed=true iff completed_by/completed_at 모두 NOT NULL. 미완료는 둘 다 NULL.
+// 교차 테이블 제약: TeamSelection 분야 = ExpertProfile.expert_type; 업무/견적/요청의 프로젝트·전문가 동일.
+// User.role=EXPERT만 ExpertProfile; PurchaseCase.buyer는 BUYER. TaskDefinition.owner 분야와 담당 분야 일치.
+// 프로젝트 행 잠금 후 선택/체크 변경; 앞 단계 전부 완료 검증. 뒤 단계 완료 존재 시 앞 단계 해제 금지.
+// FK 삭제는 기본 RESTRICT. 문서 메타데이터만 DELETE. 데모 reset은 별도 격리 테스트 데이터 트랜잭션.
+// 파생값(team_ready, progress, phase_status, quote_total)은 저장하지 않고 API에서 계산. 총 분모는 19.
+// 현재 선택된 Engagement만 계산. REPLACED 이력의 Task는 제외. 종료 기준은 등기 신청 확인이지 등기 완료가 아님.
+// 목록 인덱스 권장: service_requests(expert_id,created_at), messages(conversation_id,created_at,id), audit_events(case_id,created_at,id).
+// SEED workflow_version=3; 다음 6단계·19개 TaskDefinition 생성.
+// 1. 매물·권리관계 검토 / BROKER
+//   1. 매물 확인
+//   2. 권리관계 설명
+//   3. 가격·특약 협의
+// 2. 계약 전 세무 상담 / TAX
+//   1. 취득세 중과 가능성 확인
+//   2. 주택 수 확인
+//   3. 공동명의 검토
+//   4. 증여세 관련 자금 확인
+// 3. 매매계약·실거래 신고 / BROKER
+//   1. 매매계약 체결 확인
+//   2. 계약금 지급 확인
+//   3. 실거래 신고 확인
+// 4. 법무사 사전 준비 / LEGAL
+//   1. 소유권이전등기 서류 확인
+//   2. 취득세 예상 내역 확인
+//   3. 국민주택채권 내역 확인
+//   4. 등기 관련 비용 확인
+// 5. 잔금일 이행 확인 / LEGAL
+//   1. 잔금 지급 확인
+//   2. 매도인 서류 인도 확인
+//   3. 열쇠·주택 인도 확인
+// 6. 취득세·등기 신청 / LEGAL
+//   1. 취득세 신고·납부 지원 확인
+//   2. 소유권이전등기 신청 확인

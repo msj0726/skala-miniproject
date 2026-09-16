@@ -1,0 +1,2702 @@
+openapi: "3.0.3"
+info:
+  title: "집이음 API"
+  version: "1.0.0"
+  description: "판교6반 장민서. 프론트엔드 데모를 서버로 연결하기 위한 목표 명세. 실제 구현 완료 API가 아님. 필수 전문가 3분야, 6단계 19개 업무. 금액은 원(KRW); UI의 만원 입력은 10000배 변환. ISO 8601 UTC 저장·한국시간 표시. 일반/전문가 인증 및 소유권 검사는 필요하지만 과제 범위에 따라 Security Schemes는 정의하지 않음. 데모 컨텍스트 전환/초기화는 운영 API와 분리. 일반 목록은 items,next_cursor 페이지 구조. 산출 진행률은 저장하지 않고 현재 선택된 업무에서 계산."
+servers:
+  -
+    url: "https://api.jibeum.example/v1"
+    description: "설계용 예시 주소; 실제 서버 아님"
+tags:
+  -
+    name: "계정"
+  -
+    name: "전문가"
+  -
+    name: "구매"
+  -
+    name: "요청·견적"
+  -
+    name: "업무"
+  -
+    name: "문서"
+  -
+    name: "메시지"
+  -
+    name: "데모 관리"
+paths:
+  "/me":
+    get:
+      operationId: "getMe"
+      tags:
+        - "계정"
+      summary: "현재 사용자 조회"
+      description: "현재 사용자 조회"
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/User"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+    patch:
+      operationId: "updateMe"
+      tags:
+        - "계정"
+      summary: "구매자 표시 이름 저장"
+      description: "구매자 표시 이름 저장"
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/User"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                name:
+                  type: "string"
+                  minLength: 1
+                  maxLength: 50
+              additionalProperties: false
+              required:
+                - "name"
+  "/experts":
+    get:
+      operationId: "listExperts"
+      tags:
+        - "전문가"
+      summary: "전문가 검색·분야 필터"
+      description: "공개 프로필 조회. case_id가 없으면 비회원 조회 가능. 데모는 분야별 3명, 총 9명. 전문가 총수는 운영 시 제한하지 않는다."
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ExpertPage"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "expert_type"
+          in: "query"
+          required: false
+          description: ""
+          schema:
+            type: "string"
+            enum:
+              - "BROKER"
+              - "LEGAL"
+              - "TAX"
+        -
+          name: "case_id"
+          in: "query"
+          required: false
+          description: "선택 여부 표시에 사용할 내 프로젝트 UUID"
+          schema:
+            type: "string"
+        -
+          name: "cursor"
+          in: "query"
+          required: false
+          description: "불투명 커서; 생략 시 첫 페이지"
+          schema:
+            type: "string"
+        -
+          name: "limit"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: "페이지 크기"
+  "/experts/{expert_id}":
+    get:
+      operationId: "getExpert"
+      tags:
+        - "전문가"
+      summary: "전문가 공개 정보"
+      description: "전문가 공개 정보"
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ExpertView"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "expert_id"
+          in: "path"
+          required: true
+          description: "expert_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+  "/cases":
+    get:
+      operationId: "listCases"
+      tags:
+        - "구매"
+      summary: "내 구매 프로젝트 목록"
+      description: "내 구매 프로젝트 목록"
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/CasePage"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "cursor"
+          in: "query"
+          required: false
+          description: "불투명 커서; 생략 시 첫 페이지"
+          schema:
+            type: "string"
+        -
+          name: "limit"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: "페이지 크기"
+    post:
+      operationId: "createCase"
+      tags:
+        - "구매"
+      summary: "구매 프로젝트 생성"
+      description: "buyer_id는 인증 계정에서 결정. workflow_version=3. 담당자는 자동 선택하지 않는다. 초기 팀 슬롯 3개는 미선택으로 표시."
+      responses:
+        "201":
+          description: "생성 완료"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/PurchaseCase"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/CaseInput"
+  "/cases/{case_id}":
+    get:
+      operationId: "getCase"
+      tags:
+        - "구매"
+      summary: "구매 조건 조회"
+      description: "구매 조건 조회"
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/PurchaseCase"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "case_id"
+          in: "path"
+          required: true
+          description: "case_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+    patch:
+      operationId: "updateCase"
+      tags:
+        - "구매"
+      summary: "구매 조건 수정"
+      description: "소유 구매자만 수정. 최신 조건은 연결된 전문가의 고객 업무 화면에 반영. 변경 활동 기록 생성."
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/PurchaseCase"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "case_id"
+          in: "path"
+          required: true
+          description: "case_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/CaseUpdate"
+  "/cases/{case_id}/dashboard":
+    get:
+      operationId: "getCaseDashboard"
+      tags:
+        - "구매"
+      summary: "팀·진행률·단계·활동 요약"
+      description: "전체 19개 정의가 분모. 현재 선택된 Task 완료 수만 분자. percent=round(완료수/19*100). 미선택도 분모에 포함. 단계 상태는 서버 계산."
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Dashboard"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "case_id"
+          in: "path"
+          required: true
+          description: "case_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+  "/cases/{case_id}/requests":
+    get:
+      operationId: "listCaseRequests"
+      tags:
+        - "구매"
+      summary: "프로젝트 요청·견적 목록"
+      description: "프로젝트 요청·견적 목록"
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/RequestPage"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "case_id"
+          in: "path"
+          required: true
+          description: "case_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+        -
+          name: "expert_type"
+          in: "query"
+          required: false
+          description: ""
+          schema:
+            type: "string"
+            enum:
+              - "BROKER"
+              - "LEGAL"
+              - "TAX"
+        -
+          name: "cursor"
+          in: "query"
+          required: false
+          description: "불투명 커서; 생략 시 첫 페이지"
+          schema:
+            type: "string"
+        -
+          name: "limit"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: "페이지 크기"
+    post:
+      operationId: "createRequest"
+      tags:
+        - "구매"
+      summary: "후보에게 상담·견적 요청"
+      description: "같은 case_id+expert_id 중복은 409 DUPLICATE_REQUEST. 요청과 Conversation을 함께 생성. 여러 후보에게 요청 가능; 담당자 확정 아님."
+      responses:
+        "201":
+          description: "생성 완료"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/RequestView"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "case_id"
+          in: "path"
+          required: true
+          description: "case_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                expert_id:
+                  type: "string"
+                  format: "uuid"
+                note:
+                  type: "string"
+                  minLength: 1
+                  maxLength: 2000
+              additionalProperties: false
+              required:
+                - "expert_id"
+                - "note"
+  "/requests/{request_id}":
+    get:
+      operationId: "getRequest"
+      tags:
+        - "요청·견적"
+      summary: "요청·견적 상세 조회"
+      description: "요청·견적 상세 조회"
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/RequestView"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "request_id"
+          in: "path"
+          required: true
+          description: "request_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+  "/requests/{request_id}/quote":
+    post:
+      operationId: "createQuote"
+      tags:
+        - "요청·견적"
+      summary: "담당 후보가 견적 발송"
+      description: "요청받은 전문가만 가능. 1개 요청에 1개 견적. 보수+부가세가 합계; 실제 세금·공과금은 제외. 중복 발송 409 QUOTE_EXISTS."
+      responses:
+        "201":
+          description: "생성 완료"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Quote"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "request_id"
+          in: "path"
+          required: true
+          description: "request_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/QuoteInput"
+  "/quotes/{quote_id}/selection":
+    post:
+      operationId: "selectQuote"
+      tags:
+        - "요청·견적"
+      summary: "구매자가 최종 담당자 선택"
+      description: "소유 구매자만. 분야별 현재 담당자 1명. 팀 선택·업무·업무 체크리스트·요청/견적 상태·활동을 단일 트랜잭션으로 반영. 교체 시 기존 업무는 REPLACED, 기존 견적 OFFERED, 기존 요청 QUOTED, 기존 문서 권한 false. 현재 체크 완료 수가 1 이상이면 담당자 교체 409 WORK_STARTED. 같은 견적 재선택은 기존 결과 반환. 프로젝트 행 잠금으로 동시 선택 직렬화."
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/SelectionResult"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "quote_id"
+          in: "path"
+          required: true
+          description: "quote_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+  "/expert/dashboard":
+    get:
+      operationId: "getExpertDashboard"
+      tags:
+        - "전문가"
+      summary: "현재 전문가 대시보드"
+      description: "현재 전문가 대시보드"
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ExpertDashboard"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+  "/expert/requests":
+    get:
+      operationId: "listExpertRequests"
+      tags:
+        - "전문가"
+      summary: "나에게 온 요청"
+      description: "나에게 온 요청"
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/RequestPage"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "status"
+          in: "query"
+          required: false
+          description: ""
+          schema:
+            type: "string"
+            enum:
+              - "REQUESTED"
+              - "QUOTED"
+              - "SELECTED"
+        -
+          name: "cursor"
+          in: "query"
+          required: false
+          description: "불투명 커서; 생략 시 첫 페이지"
+          schema:
+            type: "string"
+        -
+          name: "limit"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: "페이지 크기"
+  "/expert/engagements":
+    get:
+      operationId: "listExpertEngagements"
+      tags:
+        - "전문가"
+      summary: "내가 담당하는 업무"
+      description: "내가 담당하는 업무"
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/EngagementPage"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "cursor"
+          in: "query"
+          required: false
+          description: "불투명 커서; 생략 시 첫 페이지"
+          schema:
+            type: "string"
+        -
+          name: "limit"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: "페이지 크기"
+  "/engagements/{engagement_id}/workspace":
+    get:
+      operationId: "getWorkspace"
+      tags:
+        - "업무"
+      summary: "고객 조건·업무·허용 문서"
+      description: "프로젝트 구매자 또는 해당 전문가만 조회. documents_allowed=false이면 documents는 빈 배열. phase_order와 lock_reason을 함께 반환."
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Workspace"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "engagement_id"
+          in: "path"
+          required: true
+          description: "engagement_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+  "/tasks/{task_id}":
+    patch:
+      operationId: "updateTask"
+      tags:
+        - "업무"
+      summary: "담당 전문가가 완료 상태 변경"
+      description: "현재 선택된 담당 전문가만 가능. 세 분야 미선택이면 409 TEAM_INCOMPLETE. 체크 시 모든 앞 단계 완료 필요(409 PHASE_LOCKED). 체크 해제 시 뒤 단계에 완료 항목이 있으면 409 DOWNSTREAM_COMPLETED. 같은 단계 내 순서 자유. 완료자·시간은 서버 기록; 해제 시 null. 프로젝트 행 잠금 하에 확인·갱신·진행률 계산을 원자 수행. 동일 값 재요청은 성공·중복 활동 생성 안 함."
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Dashboard"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "task_id"
+          in: "path"
+          required: true
+          description: "task_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                completed:
+                  type: "boolean"
+              additionalProperties: false
+              required:
+                - "completed"
+  "/expert/profile":
+    patch:
+      operationId: "updateExpertProfile"
+      tags:
+        - "전문가"
+      summary: "내 사무소명·소개 수정"
+      description: "내 사무소명·소개 수정"
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ExpertProfile"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                office_name:
+                  type: "string"
+                  minLength: 1
+                  maxLength: 100
+                bio:
+                  type: "string"
+                  minLength: 1
+                  maxLength: 400
+              additionalProperties: false
+              required:
+                - "office_name"
+                - "bio"
+  "/cases/{case_id}/documents":
+    get:
+      operationId: "listDocuments"
+      tags:
+        - "문서"
+      summary: "허용된 문서 목록"
+      description: "구매자는 전체, 전문가는 해당 프로젝트 요청 이력과 allowed=true 권한이 있어야 조회. 권한 없으면 403. 파일 본문은 이번 범위에서 보관하지 않는다."
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  "$ref": "#/components/schemas/Document"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "case_id"
+          in: "path"
+          required: true
+          description: "case_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+    post:
+      operationId: "createDocument"
+      tags:
+        - "문서"
+      summary: "문서 메타데이터 등록"
+      description: "구매자만. 파일명·크기·MIME만 JSON 등록; multipart 업로드와 파일 다운로드는 미제공."
+      responses:
+        "201":
+          description: "생성 완료"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Document"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "case_id"
+          in: "path"
+          required: true
+          description: "case_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/DocumentInput"
+  "/documents/{document_id}":
+    delete:
+      operationId: "deleteDocument"
+      tags:
+        - "문서"
+      summary: "문서 메타데이터 삭제"
+      description: "소유 구매자만 삭제. 원본 로컬 파일은 삭제하지 않음. 활동 기록은 유지."
+      responses:
+        "204":
+          description: "처리 성공"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "document_id"
+          in: "path"
+          required: true
+          description: "document_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+  "/cases/{case_id}/document-grants":
+    get:
+      operationId: "listDocumentGrants"
+      tags:
+        - "문서"
+      summary: "전문가별 문서 권한"
+      description: "전문가별 문서 권한"
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  "$ref": "#/components/schemas/DocumentGrant"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "case_id"
+          in: "path"
+          required: true
+          description: "case_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+  "/cases/{case_id}/document-grants/{expert_id}":
+    put:
+      operationId: "putDocumentGrant"
+      tags:
+        - "문서"
+      summary: "문서 목록 공유·철회"
+      description: "소유 구매자만. 해당 프로젝트 요청 이력이 있는 전문가에게 부여. 프로젝트 문서 전체 목록에 적용. upsert; false 즉시 철회. 미생성 권한은 false."
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/DocumentGrant"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "case_id"
+          in: "path"
+          required: true
+          description: "case_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+        -
+          name: "expert_id"
+          in: "path"
+          required: true
+          description: "expert_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                allowed:
+                  type: "boolean"
+              additionalProperties: false
+              required:
+                - "allowed"
+  "/conversations":
+    get:
+      operationId: "listConversations"
+      tags:
+        - "메시지"
+      summary: "접근 가능한 통합 대화 목록"
+      description: "구매자는 본인 요청의 모든 대화, 전문가는 본인 요청의 대화만 조회. 후보에게 요청한 즉시 생성; 최종 선택 전도 대화 가능."
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ConversationPage"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "case_id"
+          in: "query"
+          required: false
+          description: "프로젝트 UUID"
+          schema:
+            type: "string"
+        -
+          name: "cursor"
+          in: "query"
+          required: false
+          description: "불투명 커서; 생략 시 첫 페이지"
+          schema:
+            type: "string"
+        -
+          name: "limit"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: "페이지 크기"
+  "/messages":
+    get:
+      operationId: "listUnifiedMessages"
+      tags:
+        - "메시지"
+      summary: "통합 메시지 시간순 조회"
+      description: "접근 가능한 대화의 메시지를 created_at,id 오름차순으로 조회. cursor는 두 값 기반. 전문가가 다른 후보의 대화를 조회할 수 없음."
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/MessagePage"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "case_id"
+          in: "query"
+          required: false
+          description: "프로젝트 UUID"
+          schema:
+            type: "string"
+        -
+          name: "cursor"
+          in: "query"
+          required: false
+          description: "불투명 커서; 생략 시 첫 페이지"
+          schema:
+            type: "string"
+        -
+          name: "limit"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: "페이지 크기"
+  "/conversations/{conversation_id}/messages":
+    get:
+      operationId: "listMessages"
+      tags:
+        - "메시지"
+      summary: "1:1 대화 내역"
+      description: "1:1 대화 내역"
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/MessagePage"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "conversation_id"
+          in: "path"
+          required: true
+          description: "conversation_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+        -
+          name: "cursor"
+          in: "query"
+          required: false
+          description: "불투명 커서; 생략 시 첫 페이지"
+          schema:
+            type: "string"
+        -
+          name: "limit"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: "페이지 크기"
+    post:
+      operationId: "sendMessage"
+      tags:
+        - "메시지"
+      summary: "메시지 전송"
+      description: "참여자만 전송. sender_id는 인증 사용자에서 결정. 공백만 있으면 400 EMPTY_MESSAGE. 동일 client_message_id와 같은 본문 재전송 시 기존 메시지 반환, 다른 본문은 409 MESSAGE_KEY_CONFLICT. 모든 사용자 입력은 텍스트로 렌더링."
+      responses:
+        "201":
+          description: "생성 완료"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/MessageView"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "conversation_id"
+          in: "path"
+          required: true
+          description: "conversation_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                body:
+                  type: "string"
+                  minLength: 1
+                  maxLength: 1000
+                client_message_id:
+                  type: "string"
+                  format: "uuid"
+              additionalProperties: false
+              required:
+                - "body"
+                - "client_message_id"
+  "/cases/{case_id}/events":
+    get:
+      operationId: "listEvents"
+      tags:
+        - "업무"
+      summary: "최근 활동 기록"
+      description: "소유 구매자 및 현재 담당 전문가만. created_at,id 내림차순."
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/EventPage"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      parameters:
+        -
+          name: "case_id"
+          in: "path"
+          required: true
+          description: "case_id UUID"
+          schema:
+            type: "string"
+            format: "uuid"
+        -
+          name: "cursor"
+          in: "query"
+          required: false
+          description: "불투명 커서; 생략 시 첫 페이지"
+          schema:
+            type: "string"
+        -
+          name: "limit"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: "페이지 크기"
+  "/demo/actors":
+    get:
+      operationId: "listDemoActors"
+      tags:
+        - "데모 관리"
+      summary: "관리자 체험 계정 목록"
+      description: "관리자 전용 개발 환경 API. 구매자와 9명 전문가 계정 선택. 운영환경에서는 제공하지 않음."
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  "$ref": "#/components/schemas/User"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+  "/demo/context":
+    post:
+      operationId: "switchDemoContext"
+      tags:
+        - "데모 관리"
+      summary: "관리자 체험 역할 전환"
+      description: "관리자·개발환경에서만 서버 세션의 체험 계정 전환. 일반 구매자·전문가 호출은 403. 도메인 계정 role 자체를 수정하지 않는다."
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/User"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                actor_id:
+                  type: "string"
+                  format: "uuid"
+              additionalProperties: false
+              required:
+                - "actor_id"
+  "/demo/reset":
+    post:
+      operationId: "resetDemo"
+      tags:
+        - "데모 관리"
+      summary: "확인 후 체험 데이터 초기화"
+      description: "관리자·개발환경·현재 관리자에게 격리된 데모 데이터만 초기화. 실제 사용자 데이터는 영향 없음. confirm=true 필수. 확인 모달 취소 시 호출하지 않는다."
+      responses:
+        "200":
+          description: "처리 성공"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  reset:
+                    type: "boolean"
+                additionalProperties: false
+                required:
+                  - "reset"
+        "400":
+          "$ref": "#/components/responses/BadRequest"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "403":
+          "$ref": "#/components/responses/Forbidden"
+        "404":
+          "$ref": "#/components/responses/NotFound"
+        "409":
+          "$ref": "#/components/responses/Conflict"
+        "500":
+          "$ref": "#/components/responses/InternalError"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                confirm:
+                  type: "boolean"
+                  enum:
+                    - true
+              additionalProperties: false
+              required:
+                - "confirm"
+components:
+  schemas:
+    UserRole:
+      type: "string"
+      enum:
+        - "BUYER"
+        - "EXPERT"
+        - "ADMIN"
+    ExpertType:
+      type: "string"
+      enum:
+        - "BROKER"
+        - "LEGAL"
+        - "TAX"
+    FundingType:
+      type: "string"
+      enum:
+        - "SELF"
+        - "LOAN"
+        - "FAMILY"
+    OwnershipType:
+      type: "string"
+      enum:
+        - "SOLE"
+        - "JOINT"
+        - "UNDECIDED"
+    RequestStatus:
+      type: "string"
+      enum:
+        - "REQUESTED"
+        - "QUOTED"
+        - "SELECTED"
+    EngagementStatus:
+      type: "string"
+      enum:
+        - "ACTIVE"
+        - "COMPLETED"
+        - "REPLACED"
+    QuoteStatus:
+      type: "string"
+      enum:
+        - "OFFERED"
+        - "ACCEPTED"
+    MessageRole:
+      type: "string"
+      enum:
+        - "BUYER"
+        - "EXPERT"
+    User:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        role:
+          allOf:
+            -
+              "$ref": "#/components/schemas/UserRole"
+          description: "역할"
+        name:
+          type: "string"
+          minLength: 1
+          maxLength: 50
+          description: "표시 이름; 1~50자"
+        created_at:
+          type: "string"
+          format: "date-time"
+          description: "서버 생성 일시; UTC"
+        updated_at:
+          type: "string"
+          format: "date-time"
+          description: "최종 변경 일시; UTC"
+      additionalProperties: false
+      required:
+        - "id"
+        - "role"
+        - "name"
+        - "created_at"
+        - "updated_at"
+      description: "구매자·전문가·관리자 계정"
+    ExpertProfile:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        user_id:
+          type: "string"
+          format: "uuid"
+          description: "전문가 계정"
+        expert_type:
+          allOf:
+            -
+              "$ref": "#/components/schemas/ExpertType"
+          description: "전문 분야"
+        office_name:
+          type: "string"
+          minLength: 1
+          maxLength: 100
+          description: "사무소명; 1~100자"
+        bio:
+          type: "string"
+          minLength: 1
+          maxLength: 400
+          description: "소개; 1~400자"
+        region:
+          type: "string"
+          minLength: 1
+          maxLength: 100
+          description: "활동 지역"
+        career_years:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          description: "경력; 0~80"
+        is_demo:
+          type: "boolean"
+          description: "가상 전문가 여부"
+        created_at:
+          type: "string"
+          format: "date-time"
+          description: "서버 생성 일시; UTC"
+        updated_at:
+          type: "string"
+          format: "date-time"
+          description: "최종 변경 일시; UTC"
+      additionalProperties: false
+      required:
+        - "id"
+        - "user_id"
+        - "expert_type"
+        - "office_name"
+        - "bio"
+        - "region"
+        - "career_years"
+        - "is_demo"
+        - "created_at"
+        - "updated_at"
+      description: "전문가 공개 정보"
+    ExpertTag:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        expert_id:
+          type: "string"
+          format: "uuid"
+          description: "전문가"
+        label:
+          type: "string"
+          minLength: 1
+          maxLength: 50
+          description: "태그"
+        sort_order:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          description: "표시 순서; 0 이상"
+      additionalProperties: false
+      required:
+        - "id"
+        - "expert_id"
+        - "label"
+        - "sort_order"
+      description: "전문가 전문 분야 태그"
+    PurchaseCase:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        buyer_id:
+          type: "string"
+          format: "uuid"
+          description: "소유 구매자"
+        title:
+          type: "string"
+          minLength: 1
+          maxLength: 80
+          description: "프로젝트 이름"
+        region:
+          type: "string"
+          minLength: 1
+          maxLength: 100
+          description: "희망 지역"
+        budget_krw:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          description: "원 단위 구매 예산; 10000~100000000000"
+        home_count:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          description: "0 / 1 / 2(2채 이상)"
+        funding:
+          allOf:
+            -
+              "$ref": "#/components/schemas/FundingType"
+          description: "자금 구성"
+        ownership:
+          allOf:
+            -
+              "$ref": "#/components/schemas/OwnershipType"
+          description: "명의 계획"
+        target_closing_date:
+          type: "string"
+          format: "date"
+          description: "희망 잔금일"
+          nullable: true
+        workflow_version:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          description: "고정 절차 버전; 현재 3"
+        created_at:
+          type: "string"
+          format: "date-time"
+          description: "서버 생성 일시; UTC"
+        updated_at:
+          type: "string"
+          format: "date-time"
+          description: "최종 변경 일시; UTC"
+      additionalProperties: false
+      required:
+        - "id"
+        - "buyer_id"
+        - "title"
+        - "region"
+        - "budget_krw"
+        - "home_count"
+        - "funding"
+        - "ownership"
+        - "target_closing_date"
+        - "workflow_version"
+        - "created_at"
+        - "updated_at"
+      description: "구매 프로젝트"
+    ServiceRequest:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        case_id:
+          type: "string"
+          format: "uuid"
+          description: "프로젝트"
+        expert_id:
+          type: "string"
+          format: "uuid"
+          description: "요청받는 전문가"
+        note:
+          type: "string"
+          minLength: 1
+          maxLength: 2000
+          description: "상담 요청; 1~2000자"
+        status:
+          allOf:
+            -
+              "$ref": "#/components/schemas/RequestStatus"
+          description: "요청 상태"
+        created_at:
+          type: "string"
+          format: "date-time"
+          description: "서버 생성 일시; UTC"
+        updated_at:
+          type: "string"
+          format: "date-time"
+          description: "최종 변경 일시; UTC"
+      additionalProperties: false
+      required:
+        - "id"
+        - "case_id"
+        - "expert_id"
+        - "note"
+        - "status"
+        - "created_at"
+        - "updated_at"
+      description: "후보별 상담·견적 요청"
+    Quote:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        request_id:
+          type: "string"
+          format: "uuid"
+          description: "상담 요청; 요청당 1건"
+        fee_krw:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          description: "보수; 0~100000000"
+        vat_krw:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          description: "부가세; 0~10000000"
+        estimated_days:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          description: "예상 일수; 1~365"
+        scope:
+          type: "string"
+          minLength: 1
+          maxLength: 2000
+          description: "업무 범위·별도 비용 안내"
+        status:
+          allOf:
+            -
+              "$ref": "#/components/schemas/QuoteStatus"
+          description: "견적 상태"
+        created_at:
+          type: "string"
+          format: "date-time"
+          description: "서버 생성 일시; UTC"
+      additionalProperties: false
+      required:
+        - "id"
+        - "request_id"
+        - "fee_krw"
+        - "vat_krw"
+        - "estimated_days"
+        - "scope"
+        - "status"
+        - "created_at"
+      description: "후보가 보낸 견적"
+    Engagement:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        case_id:
+          type: "string"
+          format: "uuid"
+          description: "프로젝트"
+        expert_id:
+          type: "string"
+          format: "uuid"
+          description: "담당 전문가"
+        quote_id:
+          type: "string"
+          format: "uuid"
+          description: "선택 견적"
+        status:
+          allOf:
+            -
+              "$ref": "#/components/schemas/EngagementStatus"
+          description: "현재 / 완료 / 교체 이력"
+        created_at:
+          type: "string"
+          format: "date-time"
+          description: "서버 생성 일시; UTC"
+        updated_at:
+          type: "string"
+          format: "date-time"
+          description: "최종 변경 일시; UTC"
+      additionalProperties: false
+      required:
+        - "id"
+        - "case_id"
+        - "expert_id"
+        - "quote_id"
+        - "status"
+        - "created_at"
+        - "updated_at"
+      description: "선택한 견적의 업무 이력"
+    TeamSelection:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        case_id:
+          type: "string"
+          format: "uuid"
+          description: "프로젝트"
+        expert_type:
+          allOf:
+            -
+              "$ref": "#/components/schemas/ExpertType"
+          description: "필수 분야"
+        engagement_id:
+          type: "string"
+          format: "uuid"
+          description: "현재 선택한 업무 이력"
+        updated_at:
+          type: "string"
+          format: "date-time"
+          description: "최종 변경 일시; UTC"
+      additionalProperties: false
+      required:
+        - "id"
+        - "case_id"
+        - "expert_type"
+        - "engagement_id"
+        - "updated_at"
+      description: "분야별 현재 담당자"
+    PhaseDefinition:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        workflow_version:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          description: "절차 버전"
+        phase_order:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          description: "1~6"
+        title:
+          type: "string"
+          minLength: 1
+          maxLength: 100
+          description: "단계명"
+        owner_type:
+          allOf:
+            -
+              "$ref": "#/components/schemas/ExpertType"
+          description: "기록 담당 분야"
+      additionalProperties: false
+      required:
+        - "id"
+        - "workflow_version"
+        - "phase_order"
+        - "title"
+        - "owner_type"
+      description: "버전별 6단계 정의"
+    TaskDefinition:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        phase_id:
+          type: "string"
+          format: "uuid"
+          description: "단계"
+        task_order:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          description: "단계 내 순서; 1 이상"
+        title:
+          type: "string"
+          minLength: 1
+          maxLength: 100
+          description: "체크 항목"
+      additionalProperties: false
+      required:
+        - "id"
+        - "phase_id"
+        - "task_order"
+        - "title"
+      description: "버전별 19개 체크 정의"
+    Task:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        engagement_id:
+          type: "string"
+          format: "uuid"
+          description: "선택 업무"
+        definition_id:
+          type: "string"
+          format: "uuid"
+          description: "업무 정의"
+        completed:
+          type: "boolean"
+          description: "완료 여부; 기본 false"
+        completed_by:
+          type: "string"
+          format: "uuid"
+          description: "확인 전문가; 미완료 시 null"
+          nullable: true
+        completed_at:
+          type: "string"
+          format: "date-time"
+          description: "완료 시각; 미완료 시 null"
+          nullable: true
+        updated_at:
+          type: "string"
+          format: "date-time"
+          description: "최종 변경 일시; UTC"
+      additionalProperties: false
+      required:
+        - "id"
+        - "engagement_id"
+        - "definition_id"
+        - "completed"
+        - "completed_by"
+        - "completed_at"
+        - "updated_at"
+      description: "담당 전문가 체크 결과"
+    Document:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        case_id:
+          type: "string"
+          format: "uuid"
+          description: "프로젝트"
+        uploaded_by:
+          type: "string"
+          format: "uuid"
+          description: "등록 구매자"
+        file_name:
+          type: "string"
+          minLength: 1
+          maxLength: 255
+          description: "파일명"
+        size_bytes:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          description: "크기; 0 이상"
+        mime_type:
+          type: "string"
+          minLength: 1
+          maxLength: 100
+          description: "MIME; 없으면 application/octet-stream"
+        created_at:
+          type: "string"
+          format: "date-time"
+          description: "서버 생성 일시; UTC"
+      additionalProperties: false
+      required:
+        - "id"
+        - "case_id"
+        - "uploaded_by"
+        - "file_name"
+        - "size_bytes"
+        - "mime_type"
+        - "created_at"
+      description: "구매 문서 메타데이터"
+    DocumentGrant:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        case_id:
+          type: "string"
+          format: "uuid"
+          description: "프로젝트"
+        expert_id:
+          type: "string"
+          format: "uuid"
+          description: "열람 전문가"
+        allowed:
+          type: "boolean"
+          description: "문서 목록 허용; 기본 false"
+        updated_at:
+          type: "string"
+          format: "date-time"
+          description: "최종 변경 일시; UTC"
+      additionalProperties: false
+      required:
+        - "id"
+        - "case_id"
+        - "expert_id"
+        - "allowed"
+        - "updated_at"
+      description: "프로젝트 문서 목록 공유 권한"
+    Conversation:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        request_id:
+          type: "string"
+          format: "uuid"
+          description: "요청당 한 대화; 참여자는 요청에서 도출"
+        created_at:
+          type: "string"
+          format: "date-time"
+          description: "서버 생성 일시; UTC"
+      additionalProperties: false
+      required:
+        - "id"
+        - "request_id"
+        - "created_at"
+      description: "구매자와 후보 전문가의 1:1 대화"
+    Message:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        conversation_id:
+          type: "string"
+          format: "uuid"
+          description: "대화"
+        sender_id:
+          type: "string"
+          format: "uuid"
+          description: "참여자 계정"
+        body:
+          type: "string"
+          minLength: 1
+          maxLength: 1000
+          description: "공백 제거 후 1~1000자"
+        client_message_id:
+          type: "string"
+          format: "uuid"
+          description: "재전송 중복 방지 키"
+        created_at:
+          type: "string"
+          format: "date-time"
+          description: "서버 생성 일시; UTC"
+      additionalProperties: false
+      required:
+        - "id"
+        - "conversation_id"
+        - "sender_id"
+        - "body"
+        - "client_message_id"
+        - "created_at"
+      description: "대화 메시지"
+    AuditEvent:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "식별자; 서버 생성 UUID"
+        case_id:
+          type: "string"
+          format: "uuid"
+          description: "프로젝트"
+        actor_id:
+          type: "string"
+          format: "uuid"
+          description: "행위자"
+        event_type:
+          type: "string"
+          minLength: 1
+          maxLength: 50
+          description: "예: QUOTE_SELECTED, TASK_COMPLETED"
+        summary:
+          type: "string"
+          minLength: 1
+          maxLength: 500
+          description: "사용자 표시 요약"
+        resource_id:
+          type: "string"
+          format: "uuid"
+          description: "관련 리소스 식별자"
+          nullable: true
+        created_at:
+          type: "string"
+          format: "date-time"
+          description: "서버 생성 일시; UTC"
+      additionalProperties: false
+      required:
+        - "id"
+        - "case_id"
+        - "actor_id"
+        - "event_type"
+        - "summary"
+        - "resource_id"
+        - "created_at"
+      description: "프로젝트 최근 활동"
+    Error:
+      type: "object"
+      properties:
+        code:
+          type: "string"
+        message:
+          type: "string"
+        field_errors:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              field:
+                type: "string"
+              reason:
+                type: "string"
+            additionalProperties: false
+            required:
+              - "field"
+              - "reason"
+        request_id:
+          type: "string"
+      additionalProperties: false
+      required:
+        - "code"
+        - "message"
+        - "request_id"
+    Progress:
+      type: "object"
+      properties:
+        completed_count:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+        total_count:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+        percent:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          maximum: 100
+      additionalProperties: false
+      required:
+        - "completed_count"
+        - "total_count"
+        - "percent"
+    TaskView:
+      type: "object"
+      properties:
+        task:
+          "$ref": "#/components/schemas/Task"
+        title:
+          type: "string"
+        phase_order:
+          type: "integer"
+          format: "int64"
+          minimum: 1
+          maximum: 6
+        locked:
+          type: "boolean"
+        lock_reason:
+          type: "string"
+          nullable: true
+      additionalProperties: false
+      required:
+        - "task"
+        - "title"
+        - "phase_order"
+        - "locked"
+        - "lock_reason"
+    TeamSlot:
+      type: "object"
+      properties:
+        expert_type:
+          "$ref": "#/components/schemas/ExpertType"
+        expert:
+          allOf:
+            -
+              "$ref": "#/components/schemas/ExpertProfile"
+          nullable: true
+        expert_name:
+          type: "string"
+          nullable: true
+        engagement:
+          allOf:
+            -
+              "$ref": "#/components/schemas/Engagement"
+          nullable: true
+        progress:
+          "$ref": "#/components/schemas/Progress"
+        request_count:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+        quote_count:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+      additionalProperties: false
+      required:
+        - "expert_type"
+        - "expert"
+        - "expert_name"
+        - "engagement"
+        - "progress"
+        - "request_count"
+        - "quote_count"
+    PhaseView:
+      type: "object"
+      properties:
+        phase_order:
+          type: "integer"
+          format: "int64"
+          minimum: 1
+          maximum: 6
+        title:
+          type: "string"
+        owner_type:
+          "$ref": "#/components/schemas/ExpertType"
+        status:
+          type: "string"
+          enum:
+            - "LOCKED"
+            - "OPEN"
+            - "COMPLETED"
+        progress:
+          "$ref": "#/components/schemas/Progress"
+        task_titles:
+          type: "array"
+          items:
+            type: "string"
+      additionalProperties: false
+      required:
+        - "phase_order"
+        - "title"
+        - "owner_type"
+        - "status"
+        - "progress"
+        - "task_titles"
+    Dashboard:
+      type: "object"
+      properties:
+        purchase_case:
+          "$ref": "#/components/schemas/PurchaseCase"
+        team:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/TeamSlot"
+        team_ready:
+          type: "boolean"
+        overall_progress:
+          "$ref": "#/components/schemas/Progress"
+        phases:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/PhaseView"
+        events:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/AuditEvent"
+      additionalProperties: false
+      required:
+        - "purchase_case"
+        - "team"
+        - "team_ready"
+        - "overall_progress"
+        - "phases"
+        - "events"
+    ExpertView:
+      type: "object"
+      properties:
+        profile:
+          "$ref": "#/components/schemas/ExpertProfile"
+        name:
+          type: "string"
+        tags:
+          type: "array"
+          items:
+            type: "string"
+        selected:
+          type: "boolean"
+      additionalProperties: false
+      required:
+        - "profile"
+        - "name"
+        - "tags"
+        - "selected"
+    RequestView:
+      type: "object"
+      properties:
+        request:
+          "$ref": "#/components/schemas/ServiceRequest"
+        expert_name:
+          type: "string"
+        expert_type:
+          "$ref": "#/components/schemas/ExpertType"
+        buyer_name:
+          type: "string"
+        case_title:
+          type: "string"
+        quote:
+          allOf:
+            -
+              "$ref": "#/components/schemas/Quote"
+          nullable: true
+        engagement:
+          allOf:
+            -
+              "$ref": "#/components/schemas/Engagement"
+          nullable: true
+      additionalProperties: false
+      required:
+        - "request"
+        - "expert_name"
+        - "expert_type"
+        - "buyer_name"
+        - "case_title"
+        - "quote"
+        - "engagement"
+    ConversationView:
+      type: "object"
+      properties:
+        conversation:
+          "$ref": "#/components/schemas/Conversation"
+        expert_id:
+          type: "string"
+          format: "uuid"
+        expert_name:
+          type: "string"
+        expert_type:
+          "$ref": "#/components/schemas/ExpertType"
+        buyer_name:
+          type: "string"
+        latest_message:
+          allOf:
+            -
+              "$ref": "#/components/schemas/Message"
+          nullable: true
+      additionalProperties: false
+      required:
+        - "conversation"
+        - "expert_id"
+        - "expert_name"
+        - "expert_type"
+        - "buyer_name"
+        - "latest_message"
+    MessageView:
+      type: "object"
+      properties:
+        message:
+          "$ref": "#/components/schemas/Message"
+        sender_name:
+          type: "string"
+        sender_role:
+          "$ref": "#/components/schemas/MessageRole"
+        expert_type:
+          "$ref": "#/components/schemas/ExpertType"
+      additionalProperties: false
+      required:
+        - "message"
+        - "sender_name"
+        - "sender_role"
+        - "expert_type"
+    CaseInput:
+      type: "object"
+      properties:
+        title:
+          type: "string"
+          minLength: 1
+          maxLength: 80
+        region:
+          type: "string"
+          minLength: 1
+          maxLength: 100
+        budget_krw:
+          type: "integer"
+          format: "int64"
+          minimum: 10000
+          maximum: 100000000000
+        home_count:
+          type: "integer"
+          enum:
+            - 0
+            - 1
+            - 2
+        funding:
+          "$ref": "#/components/schemas/FundingType"
+        ownership:
+          "$ref": "#/components/schemas/OwnershipType"
+        target_closing_date:
+          type: "string"
+          format: "date"
+          nullable: true
+      additionalProperties: false
+      required:
+        - "title"
+        - "region"
+        - "budget_krw"
+        - "home_count"
+        - "funding"
+        - "ownership"
+    CaseUpdate:
+      type: "object"
+      properties:
+        title:
+          type: "string"
+          minLength: 1
+          maxLength: 80
+        region:
+          type: "string"
+          minLength: 1
+          maxLength: 100
+        budget_krw:
+          type: "integer"
+          format: "int64"
+          minimum: 10000
+          maximum: 100000000000
+        home_count:
+          type: "integer"
+          enum:
+            - 0
+            - 1
+            - 2
+        funding:
+          "$ref": "#/components/schemas/FundingType"
+        ownership:
+          "$ref": "#/components/schemas/OwnershipType"
+        target_closing_date:
+          type: "string"
+          format: "date"
+          nullable: true
+      additionalProperties: false
+      minProperties: 1
+    QuoteInput:
+      type: "object"
+      properties:
+        fee_krw:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          maximum: 100000000
+        vat_krw:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+          maximum: 10000000
+        estimated_days:
+          type: "integer"
+          format: "int64"
+          minimum: 1
+          maximum: 365
+        scope:
+          type: "string"
+          minLength: 1
+          maxLength: 2000
+      additionalProperties: false
+      required:
+        - "fee_krw"
+        - "vat_krw"
+        - "estimated_days"
+        - "scope"
+    DocumentInput:
+      type: "object"
+      properties:
+        file_name:
+          type: "string"
+          minLength: 1
+          maxLength: 255
+        size_bytes:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+        mime_type:
+          type: "string"
+          minLength: 1
+          maxLength: 100
+      additionalProperties: false
+      required:
+        - "file_name"
+        - "size_bytes"
+        - "mime_type"
+    ExpertDashboard:
+      type: "object"
+      properties:
+        new_request_count:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+        active_engagement_count:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+        completed_engagement_count:
+          type: "integer"
+          format: "int64"
+          minimum: 0
+        requests:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/RequestView"
+      additionalProperties: false
+      required:
+        - "new_request_count"
+        - "active_engagement_count"
+        - "completed_engagement_count"
+        - "requests"
+    SelectionResult:
+      type: "object"
+      properties:
+        selection:
+          "$ref": "#/components/schemas/TeamSelection"
+        engagement:
+          "$ref": "#/components/schemas/Engagement"
+        dashboard:
+          "$ref": "#/components/schemas/Dashboard"
+      additionalProperties: false
+      required:
+        - "selection"
+        - "engagement"
+        - "dashboard"
+    Workspace:
+      type: "object"
+      properties:
+        purchase_case:
+          "$ref": "#/components/schemas/PurchaseCase"
+        engagement:
+          "$ref": "#/components/schemas/Engagement"
+        tasks:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/TaskView"
+        documents:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Document"
+        documents_allowed:
+          type: "boolean"
+      additionalProperties: false
+      required:
+        - "purchase_case"
+        - "engagement"
+        - "tasks"
+        - "documents"
+        - "documents_allowed"
+    ExpertPage:
+      type: "object"
+      properties:
+        items:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/ExpertView"
+        next_cursor:
+          type: "string"
+          nullable: true
+      additionalProperties: false
+      required:
+        - "items"
+        - "next_cursor"
+    CasePage:
+      type: "object"
+      properties:
+        items:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/PurchaseCase"
+        next_cursor:
+          type: "string"
+          nullable: true
+      additionalProperties: false
+      required:
+        - "items"
+        - "next_cursor"
+    RequestPage:
+      type: "object"
+      properties:
+        items:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/RequestView"
+        next_cursor:
+          type: "string"
+          nullable: true
+      additionalProperties: false
+      required:
+        - "items"
+        - "next_cursor"
+    EngagementPage:
+      type: "object"
+      properties:
+        items:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Engagement"
+        next_cursor:
+          type: "string"
+          nullable: true
+      additionalProperties: false
+      required:
+        - "items"
+        - "next_cursor"
+    ConversationPage:
+      type: "object"
+      properties:
+        items:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/ConversationView"
+        next_cursor:
+          type: "string"
+          nullable: true
+      additionalProperties: false
+      required:
+        - "items"
+        - "next_cursor"
+    MessagePage:
+      type: "object"
+      properties:
+        items:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/MessageView"
+        next_cursor:
+          type: "string"
+          nullable: true
+      additionalProperties: false
+      required:
+        - "items"
+        - "next_cursor"
+    EventPage:
+      type: "object"
+      properties:
+        items:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/AuditEvent"
+        next_cursor:
+          type: "string"
+          nullable: true
+      additionalProperties: false
+      required:
+        - "items"
+        - "next_cursor"
+  responses:
+    BadRequest:
+      description: "입력 형식·필수값 오류"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+          example:
+            code: "BADREQUEST"
+            message: "입력 형식·필수값 오류"
+            request_id: "trace-001"
+    Unauthorized:
+      description: "인증 누락 또는 만료"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+          example:
+            code: "UNAUTHORIZED"
+            message: "인증 누락 또는 만료"
+            request_id: "trace-001"
+    Forbidden:
+      description: "소유자·담당 전문가 권한 없음"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+          example:
+            code: "FORBIDDEN"
+            message: "소유자·담당 전문가 권한 없음"
+            request_id: "trace-001"
+    NotFound:
+      description: "리소스 없음"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+          example:
+            code: "NOTFOUND"
+            message: "리소스 없음"
+            request_id: "trace-001"
+    Conflict:
+      description: "중복 요청·상태 충돌·선행 단계 미완료"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+          example:
+            code: "CONFLICT"
+            message: "중복 요청·상태 충돌·선행 단계 미완료"
+            request_id: "trace-001"
+    InternalError:
+      description: "서버 처리 오류"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+          example:
+            code: "INTERNALERROR"
+            message: "서버 처리 오류"
+            request_id: "trace-001"

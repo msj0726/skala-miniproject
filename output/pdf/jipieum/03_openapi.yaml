@@ -1,0 +1,3817 @@
+openapi: 3.0.3
+info:
+  title: 집이음 - 아파트 구매 통합 지원 API
+  version: 1.0.0
+  description: 설계 과제용 MVP 명세. 서비스 화면/데이터 모델과 동일 범위. 기본 URL /api/v1. 시간 UTC ISO8601, UI Asia/Seoul. 금액 원 단위 정수. 페이지
+    번호 방식 목록, 기본 createdAt DESC,id DESC (메시지 예외). 세션 쿠키 인증을 가정하되 평가 제외 항목인 Security Schemes는 생략한다. 모든 역할·소유권은 서버
+    검증. 개인정보 공유는 요청별 동의, 문서는 별도 권한. 금전 결제, 자동 세금 판정, 공공기관 신고·등기 접수는 제공하지 않는다. 종료 프로젝트에서는 신규 요청·예약·문서업로드·메시지·업무수정을
+    409 CASE_CLOSED로 거부한다. 목록 정렬은 createdAt,id로 안정 정렬한다.
+servers:
+- url: https://api.jipieum.example/api/v1
+  description: 구현 전 예시 서버; 실제 서비스 주소 아님
+paths:
+  /auth/register:
+    post:
+      operationId: register
+      summary: 회원가입
+      tags:
+      - PUBLIC
+      description: '허용 액터: PUBLIC. 이메일 중복 409 EMAIL_EXISTS. 사용자 및 서버 세션을 생성하고 HttpOnly Secure SameSite=Lax 쿠키 설정.'
+      responses:
+        '201':
+          description: 성공 (리소스 생성)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionUser'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - PUBLIC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterInput'
+  /auth/login:
+    post:
+      operationId: login
+      summary: 로그인
+      tags:
+      - PUBLIC
+      description: '허용 액터: PUBLIC. 인증 실패 401 INVALID_CREDENTIALS. 정지 계정 403 ACCOUNT_SUSPENDED. 세션 쿠키 설정.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionUser'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - PUBLIC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: 로그아웃
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT,ADMIN. 서버 세션 폐기 및 쿠키 삭제. 이미 로그아웃된 요청도 204.'
+      responses:
+        '204':
+          description: 성공
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      - EXPERT
+      - ADMIN
+  /me:
+    get:
+      operationId: getMe
+      summary: 내 계정
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT,ADMIN. '
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      - EXPERT
+      - ADMIN
+    patch:
+      operationId: updateMe
+      summary: 이름 수정
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT,ADMIN. '
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      - EXPERT
+      - ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileInput'
+  /cases:
+    get:
+      operationId: listCases
+      summary: 내 프로젝트
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER. ownerId=현재 사용자만 반환.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseCasePage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    post:
+      operationId: createCase
+      summary: 프로젝트 생성
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER. budgetMin<=budgetMax 검증. CONSULTATION도 동일 프로젝트 생성. riskHints는 법률/세액 판정이 아닌 상담
+        권고 규칙.'
+      responses:
+        '201':
+          description: 성공 (리소스 생성)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseDetail'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseCreate'
+  /cases/{caseId}:
+    get:
+      operationId: getCase
+      summary: 프로젝트 상세
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT. 소유자 또는 해당 프로젝트의 OPEN/QUOTED/ACCEPTED 요청 수신 전문가만 조회. 전문가는 본인 engagement만
+        응답. 취소 요청만 있고 업무 연결이 없으면 접근 회수.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseDetail'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      - EXPERT
+      parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+    patch:
+      operationId: updateCase
+      summary: 프로젝트 수정·종료
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER. 소유자만. version 불일치 409 STALE_VERSION. COMPLETED는 모든 engagement 완료 및 OPEN/QUOTED
+        요청 없음. CANCELLED는 업무 연결 전만. 종료 후 변경 금지. 변경 시 활성 담당자 알림. COMPLETED는 최소 1개 완료 업무 필요. CANCELLED 처리 시 모든 남은
+        요청 취소 및 OFFERED 견적 거절.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseDetail'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseUpdate'
+  /experts:
+    get:
+      operationId: listExperts
+      summary: 검증 전문가 검색
+      tags:
+      - PUBLIC
+      description: '허용 액터: PUBLIC. VERIFIED만 공개, createdAt DESC,id DESC. 지역/이름/사무소 문자열 검색.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpertProfilePage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - PUBLIC
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      - name: serviceType
+        in: query
+        required: false
+        description: ''
+        schema: &id001
+          type: string
+          enum:
+          - BROKER
+          - LEGAL
+          - TAX
+          description: BROKER=공인중개사, LEGAL=법무사, TAX=세무사
+      - name: region
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: ''
+      - name: q
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: ''
+  /experts/{expertId}:
+    get:
+      operationId: getExpert
+      summary: 전문가 상세
+      tags:
+      - PUBLIC
+      description: '허용 액터: PUBLIC. VERIFIED만 반환, 그 외 404.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpertProfile'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - PUBLIC
+      parameters:
+      - name: expertId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+  /experts/{expertId}/reviews:
+    get:
+      operationId: listExpertReviews
+      summary: 전문가 후기
+      tags:
+      - PUBLIC
+      description: '허용 액터: PUBLIC. VISIBLE만, 저자 ID로 개인 이메일 노출 금지.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewPage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - PUBLIC
+      parameters:
+      - name: expertId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+  /cases/{caseId}/requests:
+    post:
+      operationId: createRequest
+      summary: 상담·견적 요청
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER. 소유자만. 검증 전문가만. 같은 전문가에게 활성 요청 중복 409 DUPLICATE_REQUEST. 동의문 버전 불일치 409 CONSENT_UPDATED.
+        전문가에게 알림.'
+      responses:
+        '201':
+          description: 성공 (리소스 생성)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequest'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestCreate'
+    get:
+      operationId: listRequests
+      summary: 프로젝트 요청 목록
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER. 소유자만.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestPage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+  /requests/{requestId}/cancel:
+    post:
+      operationId: cancelRequest
+      summary: 요청 취소
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER. 소유자만 OPEN/QUOTED -> CANCELLED. 기존 OFFERED 견적은 DECLINED. ACCEPTED는 409. 공유 접근 회수.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequest'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      parameters:
+      - name: requestId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+  /cases/{caseId}/quotes:
+    get:
+      operationId: listQuotes
+      summary: 견적 비교
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER. 소유자만; 견적별 전문가 표시. 총액=fee+vat+estimatedExpenses. 유효기간 지난 견적 선택 비활성화.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuoteItemPage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+  /quotes/{quoteId}/accept:
+    post:
+      operationId: acceptQuote
+      summary: 견적 선택·업무 연결
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER. 소유자만. 만료 409 QUOTE_EXPIRED. 같은 case/serviceType ACTIVE 업무 하나만. DB 트랜잭션: 견적 ACCEPTED,
+        요청 ACCEPTED, 업무 생성, 역할별 Task 생성, 같은 직군 타 OPEN/QUOTED 요청 취소 및 견적 DECLINED. 동일 견적 재요청은 기존 업무 200.'
+      responses:
+        '201':
+          description: 성공 (리소스 생성)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Engagement'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+        '200':
+          description: '이미 선택한 견적: 기존 업무 반환'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Engagement'
+      x-roles:
+      - BUYER
+      parameters:
+      - name: quoteId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+  /engagements/{engagementId}/appointments:
+    get:
+      operationId: listAppointments
+      summary: 예약 목록
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT. 프로젝트 소유자 및 해당 전문가만.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentPage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      - EXPERT
+      parameters:
+      - name: engagementId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    post:
+      operationId: createAppointment
+      summary: 상담 예약 요청
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER. 소유자만. 미래 시간, 최대 2시간. 종료된 업무 409. 해당 전문가 REQUESTED/CONFIRMED 시간 중복 409 SLOT_CONFLICT.
+        전문가 알림. 시간 구간은 [startsAt,endsAt), DB에서 전문가 행 잠금으로 동시성 제어.'
+      responses:
+        '201':
+          description: 성공 (리소스 생성)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      parameters:
+      - name: engagementId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentCreate'
+  /appointments/{appointmentId}:
+    patch:
+      operationId: updateAppointment
+      summary: 예약 확정·거절·취소
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT. 담당 전문가: REQUESTED -> CONFIRMED/DECLINED. 구매자: REQUESTED/CONFIRMED -> CANCELLED
+        (시작 전). 거절/취소 reason 필수. 상대방 알림.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      - EXPERT
+      parameters:
+      - name: appointmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentUpdate'
+  /engagements/{engagementId}/tasks:
+    get:
+      operationId: listTasks
+      summary: 업무 체크리스트
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT. 프로젝트 소유자 및 해당 전문가만.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskPage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      - EXPERT
+      parameters:
+      - name: engagementId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+  /tasks/{taskId}:
+    patch:
+      operationId: updateTask
+      summary: 업무 상태·기한 변경
+      tags:
+      - EXPERT
+      description: '허용 액터: EXPERT. 담당 전문가만. ACTIVE 업무만. TODO/IN_PROGRESS/DONE 간 변경 가능. 완료를 확정하는 별도 업무 완료 버튼 전까지
+        정정 가능. 변경 시 구매자 알림.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - EXPERT
+      parameters:
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+  /engagements/{engagementId}/complete:
+    post:
+      operationId: completeEngagement
+      summary: 업무 완료
+      tags:
+      - EXPERT
+      description: '허용 액터: EXPERT. 담당 전문가만. 모든 Task DONE이고 REQUESTED 예약 없고 미래 CONFIRMED 예약 없을 때 완료. 이미 완료는 200.
+        이후 Task 수정 금지.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Engagement'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - EXPERT
+      parameters:
+      - name: engagementId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+  /cases/{caseId}/documents:
+    get:
+      operationId: listDocuments
+      summary: 문서함
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT. 소유자: 전체. 전문가: 본인 업로드 또는 활성 DocumentGrant만. 삭제 문서 제외.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentPage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      - EXPERT
+      parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    post:
+      operationId: uploadDocument
+      summary: 문서 업로드
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT. 소유자 또는 ACTIVE 업무 전문가만. MIME와 파일 시그니처 검증, 저장 성공 후 메타데이터 생성. 전문가 업로드는 소유자와
+        업로더만 접근. 실패 시 객체 정리.'
+      responses:
+        '201':
+          description: 성공 (리소스 생성)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '413':
+          $ref: '#/components/responses/E413'
+        '415':
+          $ref: '#/components/responses/E415'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      x-roles:
+      - BUYER
+      - EXPERT
+      parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadInput'
+  /documents/{documentId}/download:
+    get:
+      operationId: downloadDocument
+      summary: 다운로드 링크
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT. 소유자/업로더/활성 문서공유 수신자만. 5분 임시 URL 발급. 공유 철회 이전 발급 링크는 최대 5분 유효.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadLink'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      x-roles:
+      - BUYER
+      - EXPERT
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+  /documents/{documentId}:
+    delete:
+      operationId: deleteDocument
+      summary: 문서 삭제
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT. 소유자 또는 업로더만. deletedAt 기록, 신규 링크 발급 중단. 관련 공유 철회. 기존 URL은 최대 5분 후 만료.'
+      responses:
+        '204':
+          description: 성공
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      - EXPERT
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+  /documents/{documentId}/grants:
+    get:
+      operationId: listGrants
+      summary: 문서 공유 현황
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER. 소유자만. 활성/철회 내역 표시.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentGrantPage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    post:
+      operationId: shareDocument
+      summary: 문서 공유
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER. 소유자만. 문서와 업무 caseId 동일, 업무 ACTIVE. 활성 공유 중복 409. 수신 전문가 알림.'
+      responses:
+        '201':
+          description: 성공 (리소스 생성)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentGrant'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentShare'
+  /grants/{grantId}:
+    delete:
+      operationId: revokeGrant
+      summary: 문서 공유 철회
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER. 소유자만. revokedAt 기록. 반복 철회 204. 기존 임시 URL 최대 5분 후 만료.'
+      responses:
+        '204':
+          description: 성공
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      parameters:
+      - name: grantId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+  /engagements/{engagementId}/messages:
+    get:
+      operationId: listMessages
+      summary: 업무 대화 조회
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT. 소유자/담당 전문가만. createdAt ASC,id ASC. 화면 열려 있을 때 10초 폴링; 완료 업무도 읽기 허용.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagePage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      - EXPERT
+      parameters:
+      - name: engagementId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    post:
+      operationId: sendMessage
+      summary: 메시지 전송
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT. 소유자/담당 전문가만. ACTIVE 업무만 전송. 상대방 알림 생성.'
+      responses:
+        '201':
+          description: 성공 (리소스 생성)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      - EXPERT
+      parameters:
+      - name: engagementId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageCreate'
+  /notifications:
+    get:
+      operationId: listNotifications
+      summary: 알림 조회
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT,ADMIN. 현재 사용자만. 앱 내부 알림; 이메일/SMS 발송 없음.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      - EXPERT
+      - ADMIN
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+  /notifications/{notificationId}/read:
+    post:
+      operationId: readNotification
+      summary: 알림 읽음
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER,EXPERT,ADMIN. 수신자만. 반복 호출 시 기존 readAt 유지.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      - EXPERT
+      - ADMIN
+      parameters:
+      - name: notificationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+  /engagements/{engagementId}/review:
+    post:
+      operationId: createReview
+      summary: 후기 작성
+      tags:
+      - BUYER
+      description: '허용 액터: BUYER. 소유자만, COMPLETED 업무만. 한 업무당 한 후기, 중복 409 REVIEW_EXISTS.'
+      responses:
+        '201':
+          description: 성공 (리소스 생성)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - BUYER
+      parameters:
+      - name: engagementId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCreate'
+  /expert/profile:
+    get:
+      operationId: getMyExpert
+      summary: 내 전문가 프로필
+      tags:
+      - EXPERT
+      description: '허용 액터: EXPERT. 미등록이면 404 PROFILE_NOT_FOUND -> 등록 화면.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpertProfile'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - EXPERT
+    put:
+      operationId: applyExpert
+      summary: 전문가 등록·재심사
+      tags:
+      - EXPERT
+      description: '허용 액터: EXPERT. 본인만. 신규 또는 REJECTED만 저장 가능. 저장 시 PENDING. VERIFIED/PENDING/SUSPENDED는 409. 관리자에게
+        알림. 자격증 파일 업로드 대신 등록번호를 관리자 수동 확인.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpertProfile'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - EXPERT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpertApply'
+  /expert/dashboard:
+    get:
+      operationId: workSummary
+      summary: 전문가 업무 요약
+      tags:
+      - EXPERT
+      description: '허용 액터: EXPERT. 현재 전문가의 요청/업무/미확정 예약 집계.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkSummary'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - EXPERT
+  /expert/requests:
+    get:
+      operationId: expertRequests
+      summary: 받은 요청
+      tags:
+      - EXPERT
+      description: '허용 액터: EXPERT. 본인 expertId만. CANCELLED는 제목/상태만 표시하는 UI; 프로젝트 접근 불가.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestPage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - EXPERT
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+  /expert/engagements:
+    get:
+      operationId: expertEngagements
+      summary: 담당 업무
+      tags:
+      - EXPERT
+      description: '허용 액터: EXPERT. 본인 expertId만.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngagementPage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - EXPERT
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+  /expert/quotes:
+    get:
+      operationId: expertQuotes
+      summary: 보낸 견적
+      tags:
+      - EXPERT
+      description: '허용 액터: EXPERT. 본인에게 들어온 요청의 견적만.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotePage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - EXPERT
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+  /requests/{requestId}/quote:
+    post:
+      operationId: createQuote
+      summary: 견적 발송
+      tags:
+      - EXPERT
+      description: '허용 액터: EXPERT. 해당 요청 수신자, VERIFIED만. OPEN 요청에 한 번 발송. validUntil 미래. 요청 -> QUOTED, 구매자 알림. 수정
+        대신 요청 취소 후 재요청.'
+      responses:
+        '201':
+          description: 성공 (리소스 생성)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Quote'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - EXPERT
+      parameters:
+      - name: requestId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuoteCreate'
+  /admin/dashboard:
+    get:
+      operationId: adminSummary
+      summary: 관리 현황
+      tags:
+      - ADMIN
+      description: '허용 액터: ADMIN. '
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSummary'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - ADMIN
+  /admin/experts:
+    get:
+      operationId: adminExperts
+      summary: 전문가 심사 목록
+      tags:
+      - ADMIN
+      description: '허용 액터: ADMIN. '
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpertProfilePage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - ADMIN
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      - name: status
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: string
+          enum:
+          - PENDING
+          - VERIFIED
+          - REJECTED
+          - SUSPENDED
+          description: ''
+  /admin/experts/{expertId}/verification:
+    patch:
+      operationId: verifyExpert
+      summary: 전문가 심사
+      tags:
+      - ADMIN
+      description: '허용 액터: ADMIN. PENDING -> VERIFIED/REJECTED, VERIFIED -> SUSPENDED, SUSPENDED -> VERIFIED. 사유/처리자/시간/AuditLog
+        저장 및 알림. 중지 전문가 신규견적 금지; 기존 업무는 마무리 가능.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpertProfile'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - ADMIN
+      parameters:
+      - name: expertId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpertDecision'
+  /admin/users:
+    get:
+      operationId: adminUsers
+      summary: 계정 관리 목록
+      tags:
+      - ADMIN
+      description: '허용 액터: ADMIN. '
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - ADMIN
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      - name: q
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: ''
+  /admin/users/{userId}/status:
+    patch:
+      operationId: setUserStatus
+      summary: 계정 정지·복구
+      tags:
+      - ADMIN
+      description: '허용 액터: ADMIN. 자신 및 ADMIN 계정 변경 금지. 정지 시 모든 Session 폐기. AuditLog 저장. 전문가 계정 정지 시 프로필도 SUSPENDED;
+        복구 후 전문가 심사 별도.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - ADMIN
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserDecision'
+  /admin/reviews:
+    get:
+      operationId: adminReviews
+      summary: 후기 관리 목록
+      tags:
+      - ADMIN
+      description: '허용 액터: ADMIN. '
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewPage'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - ADMIN
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        description: ''
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+  /admin/reviews/{reviewId}/visibility:
+    patch:
+      operationId: moderateReview
+      summary: 후기 숨김·복구
+      tags:
+      - ADMIN
+      description: '허용 액터: ADMIN. moderationReason 및 AuditLog 저장. 본문 수정 불가.'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+      x-roles:
+      - ADMIN
+      parameters:
+      - name: reviewId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          description: ''
+        description: 해당 리소스 식별자
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewDecision'
+components:
+  schemas:
+    User:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        email: &id002
+          type: string
+          format: email
+          maxLength: 254
+        name: &id003
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: 표시 이름
+        role:
+          type: string
+          enum:
+          - BUYER
+          - EXPERT
+          - ADMIN
+          description: ''
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - SUSPENDED
+          description: ''
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - email
+      - name
+      - role
+      - status
+      - createdAt
+    Session:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        userId:
+          type: string
+          format: uuid
+          description: ''
+        tokenHash:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: 세션 토큰의 해시
+        expiresAt:
+          type: string
+          format: date-time
+          description: ''
+        revokedAt:
+          type: string
+          format: date-time
+          description: ''
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - userId
+      - tokenHash
+      - expiresAt
+      - revokedAt
+      - createdAt
+    ExpertProfile:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        userId:
+          type: string
+          format: uuid
+          description: ''
+        serviceType: *id001
+        displayName: &id017
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: 전문가 이름
+        officeName: &id018
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: 사무소명
+        region: &id019
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: 활동 시군구
+        introduction: &id020
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: 경력 및 전문 분야
+        licenseNumber: &id021
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: 등록번호
+        verificationStatus:
+          type: string
+          enum:
+          - PENDING
+          - VERIFIED
+          - REJECTED
+          - SUSPENDED
+          description: ''
+        verificationReason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: 심사 사유
+          nullable: true
+        verifiedBy:
+          type: string
+          format: uuid
+          description: ''
+          nullable: true
+        verifiedAt:
+          type: string
+          format: date-time
+          description: ''
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - userId
+      - serviceType
+      - displayName
+      - officeName
+      - region
+      - introduction
+      - licenseNumber
+      - verificationStatus
+      - verificationReason
+      - verifiedBy
+      - verifiedAt
+      - createdAt
+    PurchaseCase:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        ownerId:
+          type: string
+          format: uuid
+          description: ''
+        title: &id004
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: 프로젝트명
+        purpose: &id005
+          type: string
+          enum:
+          - PURCHASE
+          - CONSULTATION
+          description: ''
+        region: &id006
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: 희망 지역
+        targetAddress: &id007
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: 후보 아파트 주소; 미정이면 null
+          nullable: true
+        budgetMin: &id008
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: 최소 예산(원)
+        budgetMax: &id009
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: 최대 예산(원)
+        ownedHomeCount: &id010
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 100
+          description: 현재 세대 보유 주택 수
+        fundingSource: &id011
+          type: string
+          enum:
+          - SELF
+          - LOAN
+          - FAMILY
+          - MIXED
+          description: ''
+        ownershipPlan: &id012
+          type: string
+          enum:
+          - SOLE
+          - JOINT
+          - UNDECIDED
+          description: ''
+        contractPrice: &id013
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: 계약 체결 후 실제 매매가(원)
+          nullable: true
+        closingDate: &id014
+          type: string
+          format: date
+          description: 예정 잔금일
+          nullable: true
+        status: &id015
+          type: string
+          enum:
+          - ACTIVE
+          - COMPLETED
+          - CANCELLED
+          description: ''
+        version: &id016
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 2147483647
+          description: 낙관적 잠금 버전
+        updatedAt:
+          type: string
+          format: date-time
+          description: ''
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - ownerId
+      - title
+      - purpose
+      - region
+      - targetAddress
+      - budgetMin
+      - budgetMax
+      - ownedHomeCount
+      - fundingSource
+      - ownershipPlan
+      - contractPrice
+      - closingDate
+      - status
+      - version
+      - updatedAt
+      - createdAt
+    ServiceRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        caseId:
+          type: string
+          format: uuid
+          description: ''
+        expertId: &id022
+          type: string
+          format: uuid
+          description: ''
+        summary: &id023
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: 요청 내용
+        shareConsent: &id024
+          type: boolean
+          enum:
+          - true
+          description: 이 전문가에게 프로젝트 정보 공유에 동의
+        consentVersion: &id025
+          type: string
+          minLength: 1
+          maxLength: 30
+          description: 동의문 버전
+        consentedAt:
+          type: string
+          format: date-time
+          description: ''
+        status:
+          type: string
+          enum:
+          - OPEN
+          - QUOTED
+          - ACCEPTED
+          - CANCELLED
+          description: ''
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - caseId
+      - expertId
+      - summary
+      - shareConsent
+      - consentVersion
+      - consentedAt
+      - status
+      - createdAt
+    Quote:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        requestId:
+          type: string
+          format: uuid
+          description: ''
+        scope: &id026
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: 포함 업무
+        exclusions: &id027
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: 제외 업무 및 실비 안내
+        fee: &id028
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: 전문가 보수(원); VAT 제외
+        vat: &id029
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: VAT(원)
+        estimatedExpenses: &id030
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: 예상 실비(원), 세금 납부액 확정 아님
+        validUntil: &id031
+          type: string
+          format: date-time
+          description: 견적 유효기한
+        status:
+          type: string
+          enum:
+          - OFFERED
+          - ACCEPTED
+          - DECLINED
+          description: ''
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - requestId
+      - scope
+      - exclusions
+      - fee
+      - vat
+      - estimatedExpenses
+      - validUntil
+      - status
+      - createdAt
+    Engagement:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        caseId:
+          type: string
+          format: uuid
+          description: ''
+        expertId:
+          type: string
+          format: uuid
+          description: ''
+        quoteId:
+          type: string
+          format: uuid
+          description: ''
+        serviceType: *id001
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - COMPLETED
+          description: ''
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - caseId
+      - expertId
+      - quoteId
+      - serviceType
+      - status
+      - createdAt
+    Appointment:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        engagementId:
+          type: string
+          format: uuid
+          description: ''
+        startsAt: &id032
+          type: string
+          format: date-time
+          description: UTC ISO8601; UI는 Asia/Seoul 표시
+        endsAt: &id033
+          type: string
+          format: date-time
+          description: ''
+        channel: &id034
+          type: string
+          enum:
+          - VIDEO
+          - PHONE
+          - OFFLINE
+          description: ''
+        contactInfo: &id035
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: 전화번호, 회의 링크 또는 장소
+        status:
+          type: string
+          enum:
+          - REQUESTED
+          - CONFIRMED
+          - DECLINED
+          - CANCELLED
+          description: ''
+        reason: &id036
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: 거절/취소 사유
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - engagementId
+      - startsAt
+      - endsAt
+      - channel
+      - contactInfo
+      - status
+      - reason
+      - createdAt
+    Task:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        engagementId:
+          type: string
+          format: uuid
+          description: ''
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: 업무명
+        dueDate: &id037
+          type: string
+          format: date
+          nullable: true
+        status: &id038
+          type: string
+          enum:
+          - TODO
+          - IN_PROGRESS
+          - DONE
+          description: ''
+        note: &id039
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: 진행 설명
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: ''
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - engagementId
+      - title
+      - dueDate
+      - status
+      - note
+      - updatedAt
+      - createdAt
+    Document:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        caseId:
+          type: string
+          format: uuid
+          description: ''
+        uploaderId:
+          type: string
+          format: uuid
+          description: ''
+        fileName:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: 원본 파일명
+        mimeType:
+          type: string
+          enum:
+          - application/pdf
+          - image/jpeg
+          - image/png
+          description: ''
+        sizeBytes:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 10485760
+          description: 최대 10MiB
+        category: &id043
+          type: string
+          enum:
+          - CONTRACT
+          - TAX
+          - REGISTRATION
+          - OTHER
+          description: ''
+        deletedAt:
+          type: string
+          format: date-time
+          description: ''
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - caseId
+      - uploaderId
+      - fileName
+      - mimeType
+      - sizeBytes
+      - category
+      - deletedAt
+      - createdAt
+    DocumentGrant:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        documentId:
+          type: string
+          format: uuid
+          description: ''
+        engagementId:
+          type: string
+          format: uuid
+          description: ''
+        grantedBy:
+          type: string
+          format: uuid
+          description: ''
+        revokedAt:
+          type: string
+          format: date-time
+          description: ''
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - documentId
+      - engagementId
+      - grantedBy
+      - revokedAt
+      - createdAt
+    Message:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        engagementId:
+          type: string
+          format: uuid
+          description: ''
+        senderId:
+          type: string
+          format: uuid
+          description: ''
+        body: &id040
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: 텍스트 메시지
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - engagementId
+      - senderId
+      - body
+      - createdAt
+    Notification:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        userId:
+          type: string
+          format: uuid
+          description: ''
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: 알림 제목
+        body:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: 알림 내용
+        caseId:
+          type: string
+          format: uuid
+          description: ''
+          nullable: true
+        engagementId:
+          type: string
+          format: uuid
+          description: ''
+          nullable: true
+        readAt:
+          type: string
+          format: date-time
+          description: ''
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - userId
+      - title
+      - body
+      - caseId
+      - engagementId
+      - readAt
+      - createdAt
+    Review:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        engagementId:
+          type: string
+          format: uuid
+          description: ''
+        authorId:
+          type: string
+          format: uuid
+          description: ''
+        rating: &id041
+          type: integer
+          minimum: 1
+          maximum: 5
+        body: &id042
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: 후기
+        visibility:
+          type: string
+          enum:
+          - VISIBLE
+          - HIDDEN
+          description: ''
+        moderationReason:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: 숨김/복구 사유
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - engagementId
+      - authorId
+      - rating
+      - body
+      - visibility
+      - moderationReason
+      - createdAt
+    AuditLog:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 식별자
+        actorId:
+          type: string
+          format: uuid
+          description: ''
+        action:
+          type: string
+          enum:
+          - VERIFY_EXPERT
+          - SET_USER_STATUS
+          - MODERATE_REVIEW
+          description: ''
+        targetType:
+          type: string
+          enum:
+          - ExpertProfile
+          - User
+          - Review
+          description: ''
+        targetId:
+          type: string
+          format: uuid
+          description: 대상 식별자
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: 처리 사유
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성시각
+      required:
+      - id
+      - actorId
+      - action
+      - targetType
+      - targetId
+      - reason
+      - createdAt
+    Error:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: 기계 판독 오류 코드
+        message:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: 사용자용 메시지
+        fieldErrors:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              field:
+                type: string
+                minLength: 1
+                maxLength: 100
+                description: ''
+              message:
+                type: string
+                minLength: 1
+                maxLength: 300
+                description: ''
+            required:
+            - field
+            - message
+        requestId:
+          type: string
+          format: uuid
+          description: 요청 추적 ID
+      required:
+      - code
+      - message
+      - fieldErrors
+      - requestId
+    PageMeta:
+      type: object
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: 전체 건수
+      required:
+      - page
+      - pageSize
+      - total
+    RiskHint:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          enum:
+          - MULTI_HOME
+          - FAMILY_FUNDS
+          - JOINT_OWNERSHIP
+          description: ''
+        message:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: ''
+      required:
+      - code
+      - message
+    CaseDetail:
+      type: object
+      additionalProperties: false
+      properties:
+        case:
+          $ref: '#/components/schemas/PurchaseCase'
+        riskHints:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskHint'
+        engagements:
+          type: array
+          items:
+            $ref: '#/components/schemas/Engagement'
+      required:
+      - case
+      - riskHints
+      - engagements
+    QuoteItem:
+      type: object
+      additionalProperties: false
+      properties:
+        quote:
+          $ref: '#/components/schemas/Quote'
+        expert:
+          $ref: '#/components/schemas/ExpertProfile'
+        requestId:
+          type: string
+          format: uuid
+          description: ''
+      required:
+      - quote
+      - expert
+      - requestId
+    SessionUser:
+      type: object
+      additionalProperties: false
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+      - user
+    DownloadLink:
+      type: object
+      additionalProperties: false
+      properties:
+        url:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+          description: 5분 후 만료
+      required:
+      - url
+      - expiresAt
+    WorkSummary:
+      type: object
+      additionalProperties: false
+      properties:
+        requests:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: ''
+        activeEngagements:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: ''
+        pendingAppointments:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: ''
+      required:
+      - requests
+      - activeEngagements
+      - pendingAppointments
+    AdminSummary:
+      type: object
+      additionalProperties: false
+      properties:
+        pendingExperts:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: ''
+        activeUsers:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: ''
+        visibleReviews:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1000000000000
+          description: ''
+      required:
+      - pendingExperts
+      - activeUsers
+      - visibleReviews
+    RegisterInput:
+      type: object
+      additionalProperties: false
+      properties:
+        email: *id002
+        password:
+          type: string
+          minLength: 12
+          maxLength: 128
+          writeOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: ''
+        role:
+          type: string
+          enum:
+          - BUYER
+          - EXPERT
+          description: ''
+      required:
+      - email
+      - password
+      - name
+      - role
+    LoginInput:
+      type: object
+      additionalProperties: false
+      properties:
+        email: *id002
+        password:
+          type: string
+          minLength: 1
+          maxLength: 128
+          writeOnly: true
+      required:
+      - email
+      - password
+    ProfileInput:
+      type: object
+      additionalProperties: false
+      properties:
+        name: *id003
+      required:
+      - name
+    CaseCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        title: *id004
+        purpose: *id005
+        region: *id006
+        targetAddress: *id007
+        budgetMin: *id008
+        budgetMax: *id009
+        ownedHomeCount: *id010
+        fundingSource: *id011
+        ownershipPlan: *id012
+        contractPrice: *id013
+        closingDate: *id014
+      required:
+      - title
+      - purpose
+      - region
+      - targetAddress
+      - budgetMin
+      - budgetMax
+      - ownedHomeCount
+      - fundingSource
+      - ownershipPlan
+      - contractPrice
+      - closingDate
+    CaseUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        title: *id004
+        purpose: *id005
+        region: *id006
+        targetAddress: *id007
+        budgetMin: *id008
+        budgetMax: *id009
+        ownedHomeCount: *id010
+        fundingSource: *id011
+        ownershipPlan: *id012
+        contractPrice: *id013
+        closingDate: *id014
+        status: *id015
+        version: *id016
+      required:
+      - version
+      minProperties: 2
+    ExpertApply:
+      type: object
+      additionalProperties: false
+      properties:
+        serviceType: *id001
+        displayName: *id017
+        officeName: *id018
+        region: *id019
+        introduction: *id020
+        licenseNumber: *id021
+      required:
+      - serviceType
+      - displayName
+      - officeName
+      - region
+      - introduction
+      - licenseNumber
+    RequestCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        expertId: *id022
+        summary: *id023
+        shareConsent: *id024
+        consentVersion: *id025
+      required:
+      - expertId
+      - summary
+      - shareConsent
+      - consentVersion
+    QuoteCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        scope: *id026
+        exclusions: *id027
+        fee: *id028
+        vat: *id029
+        estimatedExpenses: *id030
+        validUntil: *id031
+      required:
+      - scope
+      - exclusions
+      - fee
+      - vat
+      - estimatedExpenses
+      - validUntil
+    AppointmentCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        startsAt: *id032
+        endsAt: *id033
+        channel: *id034
+        contactInfo: *id035
+      required:
+      - startsAt
+      - endsAt
+      - channel
+      - contactInfo
+    AppointmentUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum:
+          - CONFIRMED
+          - DECLINED
+          - CANCELLED
+          description: ''
+        reason: *id036
+      required:
+      - status
+      - reason
+    TaskUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        dueDate: *id037
+        status: *id038
+        note: *id039
+      required:
+      - dueDate
+      - status
+      - note
+    MessageCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        body: *id040
+      required:
+      - body
+    ReviewCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        rating: *id041
+        body: *id042
+      required:
+      - rating
+      - body
+    DocumentShare:
+      type: object
+      additionalProperties: false
+      properties:
+        engagementId:
+          type: string
+          format: uuid
+          description: ''
+      required:
+      - engagementId
+    ExpertDecision:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum:
+          - VERIFIED
+          - REJECTED
+          - SUSPENDED
+          description: ''
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: ''
+      required:
+      - status
+      - reason
+    UserDecision:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - SUSPENDED
+          description: ''
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: ''
+      required:
+      - status
+      - reason
+    ReviewDecision:
+      type: object
+      additionalProperties: false
+      properties:
+        visibility:
+          type: string
+          enum:
+          - VISIBLE
+          - HIDDEN
+          description: ''
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: ''
+      required:
+      - visibility
+      - reason
+    UploadInput:
+      type: object
+      additionalProperties: false
+      properties:
+        file:
+          type: string
+          format: binary
+          description: PDF/JPEG/PNG, 최대 10MiB
+        category: *id043
+      required:
+      - file
+      - category
+    PurchaseCasePage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PurchaseCase'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+      - items
+      - meta
+    ExpertProfilePage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExpertProfile'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+      - items
+      - meta
+    ReviewPage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+      - items
+      - meta
+    ServiceRequestPage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceRequest'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+      - items
+      - meta
+    QuoteItemPage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuoteItem'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+      - items
+      - meta
+    AppointmentPage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Appointment'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+      - items
+      - meta
+    TaskPage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+      - items
+      - meta
+    DocumentPage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+      - items
+      - meta
+    DocumentGrantPage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentGrant'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+      - items
+      - meta
+    MessagePage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+      - items
+      - meta
+    NotificationPage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+      - items
+      - meta
+    EngagementPage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Engagement'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+      - items
+      - meta
+    QuotePage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Quote'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+      - items
+      - meta
+    UserPage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      required:
+      - items
+      - meta
+  responses:
+    E400:
+      description: 입력 타입·범위·필수값 오류
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: VALIDATION_ERROR
+            message: 입력 타입·범위·필수값 오류
+            fieldErrors: []
+            requestId: 00000000-0000-4000-8000-000000000001
+    E401:
+      description: 로그인 필요 또는 세션 만료
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: UNAUTHENTICATED
+            message: 로그인 필요 또는 세션 만료
+            fieldErrors: []
+            requestId: 00000000-0000-4000-8000-000000000001
+    E403:
+      description: 역할·소유권·계정상태 불충족
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: FORBIDDEN
+            message: 역할·소유권·계정상태 불충족
+            fieldErrors: []
+            requestId: 00000000-0000-4000-8000-000000000001
+    E404:
+      description: 리소스 없음 또는 공개 불가
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: NOT_FOUND
+            message: 리소스 없음 또는 공개 불가
+            fieldErrors: []
+            requestId: 00000000-0000-4000-8000-000000000001
+    E409:
+      description: 중복·상태·버전·예약 충돌
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: STATE_CONFLICT
+            message: 중복·상태·버전·예약 충돌
+            fieldErrors: []
+            requestId: 00000000-0000-4000-8000-000000000001
+    E413:
+      description: 업로드 용량 초과
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: FILE_TOO_LARGE
+            message: 업로드 용량 초과
+            fieldErrors: []
+            requestId: 00000000-0000-4000-8000-000000000001
+    E415:
+      description: 허용하지 않는 파일 형식
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: UNSUPPORTED_MEDIA_TYPE
+            message: 허용하지 않는 파일 형식
+            fieldErrors: []
+            requestId: 00000000-0000-4000-8000-000000000001
+    E429:
+      description: 요청 빈도 초과, 잠시 후 재시도
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: RATE_LIMITED
+            message: 요청 빈도 초과, 잠시 후 재시도
+            fieldErrors: []
+            requestId: 00000000-0000-4000-8000-000000000001
+    E500:
+      description: 서버 내부 오류
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: INTERNAL_ERROR
+            message: 서버 내부 오류
+            fieldErrors: []
+            requestId: 00000000-0000-4000-8000-000000000001
+    E503:
+      description: 문서 저장소 이용 불가
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: STORAGE_UNAVAILABLE
+            message: 문서 저장소 이용 불가
+            fieldErrors: []
+            requestId: 00000000-0000-4000-8000-000000000001
